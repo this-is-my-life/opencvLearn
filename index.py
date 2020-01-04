@@ -4,46 +4,33 @@ import numpy as np
 def nothing (x):
   pass
 
-cap = cv2.VideoCapture(0)
-cv2.namedWindow("Controller")
-cv2.createTrackbar("LH", "Controller", 0, 255, nothing)
-cv2.createTrackbar("LS", "Controller", 0, 255, nothing)
-cv2.createTrackbar("LV", "Controller", 0, 255, nothing)
-cv2.createTrackbar("UH", "Controller", 255, 255, nothing)
-cv2.createTrackbar("US", "Controller", 255, 255, nothing)
-cv2.createTrackbar("UV", "Controller", 255, 255, nothing)
+cap = cv2.VideoCapture('sample.mp4')
 
-while (True):
-  ret, frame = cap.read()
+ret, f1 = cap.read()
+ret, f2 = cap.read()
 
-  if ret == True:
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+while cap.isOpened():
+  diff = cv2.absdiff(f1, f2)
+  gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+  blur = cv2.GaussianBlur(gray, (5, 5), 0)
+  _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+  dilated = cv2.dilate(thresh, None, iterations=3)
+  contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    l_h = cv2.getTrackbarPos("LH", "Controller")
-    l_s = cv2.getTrackbarPos("LS", "Controller")
-    l_v = cv2.getTrackbarPos("LV", "Controller")
+  
+  for contour in contours:
+    x, y, w, h = cv2.boundingRect(contour)
+    if cv2.contourArea(contour) < 200:
+      continue
+    cv2.rectangle(f1, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-    u_h = cv2.getTrackbarPos("UH", "Controller")
-    u_s = cv2.getTrackbarPos("US", "Controller")
-    u_v = cv2.getTrackbarPos("UV", "Controller")
+  cv2.imshow('OpenCV Learn', f1)
 
-    l_b = np.array([l_h, l_s, l_v])
-    u_b = np.array([u_h, u_s, u_v])
+  f1 = f2
+  ret, f2 = cap.read()
 
-    mask = cv2.inRange(hsv, l_b, u_b)
-
-    res = cv2.bitwise_and(frame, frame, mask=mask)
-
-    cv2.imshow('Origin', frame)
-    cv2.imshow('Converted', hsv)
-    cv2.imshow('Masked', mask)
-    cv2.imshow('Result', res)
-
-    key = cv2.waitKey(1)
-    if key == 27:
-      break
-
-  else:
+  key = cv2.waitKey(40)
+  if key == 27:
     break
 
 cap.release()
