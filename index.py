@@ -1,37 +1,24 @@
 import cv2
-import numpy as np
 
-def nothing (x):
-  pass
+face = cv2.CascadeClassifier('data/haarcascade_frontalface_default.xml')
+eye = cv2.CascadeClassifier('data/haarcascade_eye_tree_eyeglasses.xml')
+cap = cv2.VideoCapture(0)
 
-cap = cv2.VideoCapture('sample.mp4')
+while True:
+  _, img = cap.read()
+  gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+  faces = face.detectMultiScale(gray, 1.1, 4)
 
-ret, f1 = cap.read()
-ret, f2 = cap.read()
+  for (x, y, w, h) in faces:
+    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 3)
+    roi_gray = gray[y:y+h, x:x+w]
+    roi_img = img[y:y+h, x:x+w]
+    eyes = eye.detectMultiScale(roi_gray)
+    for (ex, ey, ew, eh) in eyes:
+      cv2.rectangle(roi_img, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), 5)
 
-while cap.isOpened():
-  diff = cv2.absdiff(f1, f2)
-  gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-  blur = cv2.GaussianBlur(gray, (5, 5), 0)
-  _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-  dilated = cv2.dilate(thresh, None, iterations=3)
-  contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-  
-  for contour in contours:
-    x, y, w, h = cv2.boundingRect(contour)
-    if cv2.contourArea(contour) < 200:
-      continue
-    cv2.rectangle(f1, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-  cv2.imshow('OpenCV Learn', f1)
-
-  f1 = f2
-  ret, f2 = cap.read()
-
-  key = cv2.waitKey(40)
-  if key == 27:
+  cv2.imshow("Renderd", img)
+  if cv2.waitKey(1) & 0xff == ord('q'):
     break
 
 cap.release()
-cv2.destroyAllWindows()
